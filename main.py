@@ -268,8 +268,8 @@ class Game:
                             if (player_chunk[1]*8+y) == -3:
                                 #print player_chunk, x,y,z
                                 data.append(Grass(player_chunk[0]*8+x,player_chunk[1]*8+y,player_chunk[2]*8+z))
-                            elif (player_chunk[1]*8+y) < -3:
-                                data.append(Stone(player_chunk[0]*8+x,player_chunk[1]*8+y,player_chunk[2]*8+z))
+                            #elif (player_chunk[1]*8+y) < -3:
+                            #    data.append(Stone(player_chunk[0]*8+x,player_chunk[1]*8+y,player_chunk[2]*8+z))
                             else:
                                 data.append(None)
             #print data
