@@ -1,3 +1,4 @@
 pyglet
 *.pyc
 worlds/*
+__pycache__/*

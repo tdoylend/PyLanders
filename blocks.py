@@ -87,13 +87,13 @@ class Block:
                 self.x + scale, self.y + scale, self.z + scale,
                 self.x - scale, self.y + scale, self.z + scale) if top else ())             
 
-    def get_colors(self):
-        return cmult(self.color,0.5)*4 + \
-               cmult(self.color,0.7)*4 + \
-               cmult(self.color,0.6)*4 + \
-               cmult(self.color,0.8)*4 + \
-               cmult(self.color,0.3)*4 + \
-               cmult(self.color,1.0)*4
+    def get_colors(self,top=True,bottom=True,left=True,right=True,front=True,back=True):
+        return ((cmult(self.color,0.5)*4)if back else ()) + \
+               ((cmult(self.color,0.7)*4)if front else ()) + \
+               ((cmult(self.color,0.6)*4)if left else ()) + \
+               ((cmult(self.color,0.8)*4)if right else ()) + \
+               ((cmult(self.color,0.3)*4)if bottom else ()) + \
+               ((cmult(self.color,1.0)*4)if top else ())
 
 class Grass(Block):
     name='grass'

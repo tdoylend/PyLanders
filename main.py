@@ -8,11 +8,28 @@ import cPickle as pickle
 from blocks import *
 #from opensimplex.opensimplex import OpenSimplex
 
+def yn(prompt):
+    while True:
+        d=raw_input(prompt)
+        if d.upper().startswith('Y'): return True
+        if d.upper().startswith('N'): return False
+        print 'Please answer yes or no.'
+
+wide_range = (-4,5)
+do_offsets = yn('Load more chunks? ')
+deletion_range = 10 if do_offsets else 5
 OFFSETS = []
-for z in xrange(-2,3):
-    for y  in xrange(-1,2):
-        for x in xrange(-2,3):
+for z in xrange(*wide_range):
+    for y  in xrange(*wide_range):
+        for x in xrange(*wide_range):
             OFFSETS.append((x,y,z))
+
+CLOSE_OFFSETS = []
+for z in xrange(-1,2):
+    for y in xrange(-1,2):
+        for x in xrange(-1,2):
+            CLOSE_OFFSETS.append((x,y,z))
+            OFFSETS.remove((x,y,z))
 
 SKY_COLOR = 0.45, 0.7, 1.0
 
@@ -55,8 +72,41 @@ class Chunk:
                 for x in xrange(8):
                     block = self.grid[z*64+y*8+x]
                     if block is not None:
-                        vertices.extend(block.get_vertices())
-                        colors.extend(block.get_colors())
+                        if (x == 0): left=True
+                        elif self.get_block(x-1,y,z): left=False
+                        else: left=True
+                        if (x == 7): right=True
+                        elif self.get_block(x+1,y,z): right=False
+                        else: right=True
+                        if (y == 0): bottom=True
+                        elif self.get_block(x,y-1,z): bottom=False
+                        else: bottom=True
+                        if (y == 7): top=True
+                        elif self.get_block(x,y+1,z): top=False
+                        else: top=True
+                        if (z == 0): back=True
+                        elif self.get_block(x,y,z-1): back=False
+                        else: back=True
+                        if (z == 7): front=True
+                        elif self.get_block(x,y,z+1): front=False
+                        else: front=True
+                        
+                        vertices.extend(block.get_vertices(
+                            left=left,
+                            right=right,
+                            top=top,
+                            bottom=bottom,
+                            back=back,
+                            front=front
+                        ))
+                        colors.extend(block.get_colors(
+                            left=left,
+                            right=right,
+                            top=top,
+                            bottom=bottom,
+                            back=back,
+                            front=front
+                        ))
 
         #print vertices
         #print colors
@@ -116,6 +166,7 @@ class Game:
         glClearColor(0.3,0.5,1.0,1.0)
 
         self.off_number = 0
+        self.close_number = 0
 
         self.key_listing = self.chunks.keys()
 
@@ -155,10 +206,16 @@ class Game:
 
         player_chunk = (int(self.player.x//8),int(self.player.y//8),int(self.player.z//8))
 
-        self.off_number += 1
-        self.off_number %= len(OFFSETS)
-        off = OFFSETS[self.off_number]
-        self.check_and_load(player_chunk[0]+off[0],player_chunk[1]+off[1],player_chunk[2]+off[2])
+        if do_offsets:
+            self.off_number += 1
+            self.off_number %= len(OFFSETS)
+            off = OFFSETS[self.off_number]
+            self.check_and_load(player_chunk[0]+off[0],player_chunk[1]+off[1],player_chunk[2]+off[2])
+
+        self.close_number += 1
+        self.close_number %= len(CLOSE_OFFSETS)
+        close = CLOSE_OFFSETS[self.close_number]
+        self.check_and_load(player_chunk[0]+close[0],player_chunk[1]+close[1],player_chunk[2]+close[2])
 
         if not self.key_listing:
             self.key_listing = self.chunks.keys()
@@ -170,7 +227,7 @@ class Game:
         dy = to_check[1] - player_chunk[1]
         dz = to_check[2] - player_chunk[2]
 
-        if sqrt(dx*dx+dy*dy+dz*dz) > 5:
+        if sqrt(dx*dx+dy*dy+dz*dz) > deletion_range:
             self.unload(*to_check)
 
     def unload(self,cx,cy,cz):
@@ -211,8 +268,8 @@ class Game:
                             if (player_chunk[1]*8+y) == -3:
                                 #print player_chunk, x,y,z
                                 data.append(Grass(player_chunk[0]*8+x,player_chunk[1]*8+y,player_chunk[2]*8+z))
-                            #elif (player_chunk[1]*8+y) < -2:
-                            #    data.append(Stone(player_chunk[0]*8+x,player_chunk[1]*8+y,player_chunk[2]*8+z))
+                            elif (player_chunk[1]*8+y) < -3:
+                                data.append(Stone(player_chunk[0]*8+x,player_chunk[1]*8+y,player_chunk[2]*8+z))
                             else:
                                 data.append(None)
             #print data
@@ -273,7 +330,7 @@ class Game:
         self.player.transform()
         glEnable(GL_FOG)
         glFogi(GL_FOG_MODE, GL_LINEAR)
-        glFogf(GL_FOG_START, 20.0) #2
+        glFogf(GL_FOG_START, 2.0) #2
         glFogf(GL_FOG_END, 40.0)
         glFogfv(GL_FOG_COLOR,(GLfloat*3)(0.3,0.5,1.0))
         
