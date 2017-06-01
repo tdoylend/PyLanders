@@ -461,6 +461,9 @@ class Game:
         for chunk in self.chunks.keys():
             self.unload(*chunk)
 
+if not os.path.isdir('worlds'):
+    os.mkdir('worlds')
+
 world = raw_input('Pick your world: ')
 
 if world not in os.listdir('worlds'):
