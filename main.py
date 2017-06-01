@@ -25,6 +25,8 @@ def sign(n):
 class Block:
     name='block'
     transparent=False
+    invent_color = (0,0,0)
+    
     def __init__(self,x,y,z):
         self.x = x
         self.y = y
@@ -33,6 +35,9 @@ class Block:
             raise StandardError('FOUL PLAY!')
 
         self.spec_init()
+
+    def spec_init(self):
+        self.color = (0,0,0)
 
     def save_data(self):
         return self.x,self.y,self.z
@@ -111,16 +116,19 @@ class Block:
 
 class Grass(Block):
     name='grass'
+    invent_color = (0.0,0.5,0.0)
     def spec_init(self):
         self.color = (0+random()*0.1,0.5+random()*0.1,0+random()*0.1)
 
 class Stone(Block):
     name='stone'
+    invent_color = (0.3,0.3,0.3)
     def spec_init(self):
         self.color = (0.3,0.3,0.3)
 
 class Trunk(Block):
     name = 'trunk'
+    invent_color = 0.5,0.3,0.0
     def spec_init(self):
         self.color = (0.5,0.3,0.0)
 
@@ -130,6 +138,13 @@ names = {
     'stone': Stone,
     'trunk': Trunk,
     }
+
+items = [
+    Block,
+    Grass,
+    Stone,
+    Trunk
+    ]
 
 class Chunk:
     def __init__(self,position,initial_data=[None]*512):
@@ -219,6 +234,9 @@ class Game:
         self.world = world
 
         self.fps_display = pyglet.clock.ClockDisplay()
+
+        self.inventory = False
+        self.invent_pos = (0,0)
 
     def update(self,dt):
         self.motion_amount = dt * 5
@@ -357,7 +375,11 @@ class Game:
             return self.chunks[chunk].get_block(*inner)
         
     def on_draw(self):
+        glLineWidth(2.0)
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendEquation(GL_FUNC_ADD)
         glEnable(GL_DEPTH_TEST)
         self.set_3d()
         self.player.transform()
@@ -371,9 +393,9 @@ class Game:
             chunk.draw()
         b = self.cast_ray()
         if b:
-            glLineWidth(2.0)
+            
 ##            #print b.x,b.y,b.z
-            glColor3f(0,0,0)
+            glColor4f(0,0,0,1.0)
 
             glBegin(GL_LINE_STRIP)
             v = b.get_selectbox_vertices()
@@ -389,9 +411,25 @@ class Game:
         self.set_2d()
         glLoadIdentity()
         glDisable(GL_DEPTH_TEST)
-        glColor3f(1,1,1)
+        if self.inventory:
+            start_pos = [self.window.width//2-len(items)*32,self.window.height//2]
+            glBegin(GL_QUADS)
+            for block in items:
+                glColor3f(*block.invent_color)
+                glVertex2f(start_pos[0]-32,start_pos[1]-32)
+                glVertex2f(start_pos[0]+32,start_pos[1]-32)
+                glVertex2f(start_pos[0]+32,start_pos[1]+32)
+                glVertex2f(start_pos[0]-32,start_pos[1]+32)
+                start_pos[0] += 64
+            glEnd()
+                
+            
+        glColor4f(1,1,1,0.5)
+        if not self.inventory:
+            cx,cy = self.window.width//2,self.window.height//2
+        else:
+            cx,cy = self.invent_pos
         glBegin(GL_LINES)
-        cx,cy = self.window.width//2,self.window.height//2
         glVertex2f(cx-10,cy)
         glVertex2f(cx+10,cy)
         glVertex2f(cx,cy-10)
@@ -442,16 +480,32 @@ class Game:
         return None
         
     def on_mouse_motion(self,x,y,dx,dy):
-        self.player.angle_y -= dx *0.87 #NOTE: These are reserved.
-        self.player.angle_x += dy *0.87
-        self.player.angle_x = max(min(self.player.angle_x, 90),-90)
-
+        if not self.inventory:
+            self.player.angle_y -= dx *0.75 #NOTE: These are reserved.
+            self.player.angle_x += dy *0.75
+            self.player.angle_x = max(min(self.player.angle_x, 90),-90)
+        else:
+            self.invent_pos = (self.invent_pos[0]+dx,self.invent_pos[1]+dy)
+            
     def on_mouse_press(self,x,y,button,modifiers):
         if button == pyglet.window.mouse.LEFT:
-            b = self.cast_ray()
-            if b is not None:
-                
-                self.set_block(b.x,b.y,b.z,None)
+            if self.inventory:
+                x,y = self.invent_pos
+                self.inventory = False
+                x -= self.window.width//2 - len(items)*32
+                y -= self.window.height//2
+                print x,y
+                if abs(y) > 32:
+                    return
+                elif x >= (len(items)*64):
+                    return
+                else:
+                    self.player.current_block = items[x//64]
+            else:
+                b = self.cast_ray()
+                if b is not None:
+                    
+                    self.set_block(b.x,b.y,b.z,None)
         elif button == pyglet.window.mouse.RIGHT:
             b = self.cast_to_side()
             if b is not None:
@@ -460,6 +514,11 @@ class Game:
     def on_close(self):
         for chunk in self.chunks.keys():
             self.unload(*chunk)
+
+    def on_key_press(self,key,modifiers):
+        if key == pyglet.window.key.E:
+            self.inventory = not self.inventory
+            self.invent_pos = (self.window.width//2,self.window.height//2)
 
 if not os.path.isdir('worlds'):
     os.mkdir('worlds')
