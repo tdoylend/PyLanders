@@ -1,4 +1,5 @@
 pyglet
+opensimplex
 *.pyc
 worlds/*
 */__pycache__/*
