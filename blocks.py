@@ -123,3 +123,17 @@ class Cuboids(Block):
             data += (
                 
                 ) #TODO: Finish
+
+names = {
+    'block': Block,
+    'grass': Grass,
+    'stone': Stone,
+    'trunk': Trunk,
+    }
+
+blocks = [
+    Block,
+    Grass,
+    Stone,
+    Trunk
+    ]
