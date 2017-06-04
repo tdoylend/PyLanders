@@ -112,3 +112,14 @@ class Trunk(Block):
     invent_color = 0.5,0.3,0.0
     def spec_init(self):
         self.color = (0.5,0.3,0.0)
+
+class Cuboids(Block):
+    name = 'cuboids'
+    cubes = ((0,0,0,0.5,0.5,0.5))
+    transparent = True
+    def get_vertices(self,**kwargs):
+        data = ()
+        for cube in self.cubes:
+            data += (
+                
+                ) #TODO: Finish

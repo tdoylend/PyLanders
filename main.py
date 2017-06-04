@@ -5,7 +5,9 @@ from pyglet.window import key
 from math import *
 import os
 import cPickle as pickle
-from blocks import *
+import blocks
+from chunk import Chunk
+import imp
 #from opensimplex.opensimplex import OpenSimplex
 
 def yn(prompt):
@@ -36,94 +38,19 @@ SKY_COLOR = 0.45, 0.7, 1.0
 def sign(n):
     return -1 if n < 0 else 1
 
-
 names = {
-    'block': Block,
-    'grass': Grass,
-    'stone': Stone,
-    'trunk': Trunk,
+    'block': blocks.Block,
+    'grass': blocks.Grass,
+    'stone': blocks.Stone,
+    'trunk': blocks.Trunk,
     }
 
 items = [
-    Block,
-    Grass,
-    Stone,
-    Trunk
+    blocks.Block,
+    blocks.Grass,
+    blocks.Stone,
+    blocks.Trunk
     ]
-
-class Chunk:
-    def __init__(self,position,initial_data=[None]*512):
-        self.grid = initial_data
-        self.position = position
-        self.recompile()
-
-    def set_block(self,x,y,z,block):
-        self.grid[z * 64 + y * 8 + x] = block
-        self.recompile()
-
-    def get_block(self,x,y,z):
-        return self.grid[z*64 + y * 8 + x]
-
-    def recompile(self):
-        vertices = []
-        colors = []
-        for z in xrange(8):
-            for y in xrange(8):
-                for x in xrange(8):
-                    block = self.grid[z*64+y*8+x]
-                    if block is not None:
-                        if (x == 0): left=True
-                        elif self.get_block(x-1,y,z): left=False
-                        else: left=True
-                        if (x == 7): right=True
-                        elif self.get_block(x+1,y,z): right=False
-                        else: right=True
-                        if (y == 0): bottom=True
-                        elif self.get_block(x,y-1,z): bottom=False
-                        else: bottom=True
-                        if (y == 7): top=True
-                        elif self.get_block(x,y+1,z): top=False
-                        else: top=True
-                        if (z == 0): back=True
-                        elif self.get_block(x,y,z-1): back=False
-                        else: back=True
-                        if (z == 7): front=True
-                        elif self.get_block(x,y,z+1): front=False
-                        else: front=True
-                        
-                        vertices.extend(block.get_vertices(
-                            left=left,
-                            right=right,
-                            top=top,
-                            bottom=bottom,
-                            back=back,
-                            front=front
-                        ))
-                        colors.extend(block.get_colors(
-                            left=left,
-                            right=right,
-                            top=top,
-                            bottom=bottom,
-                            back=back,
-                            front=front
-                        ))
-
-        #print vertices
-        #print colors
-
-        if not vertices:
-            self.list = None
-        else:
-            self.list = pyglet.graphics.vertex_list(len(vertices)//3,
-                                                    ('v3f',vertices),
-                                                    ('c3f',colors)
-                                                    )
-
-    def draw(self):
-        if not self.list:
-            pass
-        else:
-            self.list.draw(GL_QUADS)
 
 class Player:
     def __init__(self,x,y,z):
@@ -131,7 +58,7 @@ class Player:
         self.angle_y = 0
         self.angle_x = 0
         self.vel_y = 0
-        self.current_block = Stone
+        self.current_block = blocks.Stone
 
     def transform(self):
         #glLoadIdentity()
@@ -261,29 +188,13 @@ class Game:
                 gen_features=False
             else:
                 gen_features = True
-                data = []
-                for z in xrange(8):
-                    for y in xrange(8):
-                        for x in xrange(8):
-                            if (player_chunk[1]*8+y) == -3:
-                                #print player_chunk, x,y,z
-                                data.append(Grass(player_chunk[0]*8+x,player_chunk[1]*8+y,player_chunk[2]*8+z))
-                            #elif (player_chunk[1]*8+y) < -3:
-                            #    data.append(Stone(player_chunk[0]*8+x,player_chunk[1]*8+y,player_chunk[2]*8+z))
-                            else:
-                                data.append(None)
+                data = generator.generate(cx,cy,cz)
+                
             #print data
             self.chunks[player_chunk] = Chunk(player_chunk,data)
-            if gen_features and not randint(0,3):
-                if player_chunk[1] == 0:
-                    tree = player_chunk[0]*8+randint(0,7),-2,player_chunk[2]*8+randint(0,7)
-                    self.set_block(tree[0],tree[1],tree[2],Trunk(tree[0],tree[1],tree[2]))
-                    self.set_block(tree[0],tree[1]+1,tree[2],Trunk(tree[0],tree[1]+1,tree[2]))
-                    tree = (tree[0],tree[1]+3,tree[2])
-                    for off_x in xrange(tree[0]-1,tree[0]+2):
-                        for off_y in xrange(tree[1]-1,tree[1]+2):
-                            for off_z in xrange(tree[2]-1,tree[2]+2):
-                                self.set_block(off_x,off_y,off_z,Grass(off_x,off_y,off_z))
+            if gen_features:
+                generator.features(cx,cy,cz,self)
+                pass
             
     def set_3d(self):
         width,height = self.window.width,self.window.height
@@ -456,14 +367,14 @@ class Game:
             if b is not None:
                 self.set_block(b[0],b[1],b[2],self.player.current_block(b[0],b[1],b[2]))
 
-    def on_close(self):
-        for chunk in self.chunks.keys():
-            self.unload(*chunk)
-
     def on_key_press(self,key,modifiers):
         if key == pyglet.window.key.E:
             self.inventory = not self.inventory
             self.invent_pos = (self.window.width//2,self.window.height//2)
+        if key == pyglet.window.key.ESCAPE:
+            for chunk in self.chunks.keys():
+                self.unload(*chunk)
+            raise SystemExit
 
 if not os.path.isdir('worlds'):
     os.mkdir('worlds')
@@ -473,6 +384,15 @@ world = raw_input('Pick your world: ')
 if world not in os.listdir('worlds'):
     print 'Creating the world...'
     os.mkdir('worlds/'+world)
+    generator = raw_input('Select a generator: ')
+    open('worlds/'+world+'/generator','w').write(generator)
+    generator = imp.load_source('generator','generators/'+generator)
+    generator.initialize(world)
+else:
+    generator = imp.load_source('generator','generators/'+open('worlds/'+world+'/generator').read())
+
+generator.blocks = blocks
+generator.load(world)
 
 game = Game(world)
 
