@@ -17,3 +17,5 @@ def generate(cx,cy,cz):
 
 def load(world):
     pass
+
+def features(cx,cy,cz,world): pass

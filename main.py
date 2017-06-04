@@ -18,7 +18,9 @@ def yn(prompt):
         print 'Please answer yes or no.'
 
 wide_range = (-4,5)
-do_offsets = yn('Load more chunks? ')
+do_offsets = yn(
+    'Do you wish to load more chunks? This is recommended\nonly if you are using pypy and/or a powerful computer. '
+)
 deletion_range = 10 if do_offsets else 5
 OFFSETS = []
 for z in xrange(*wide_range):
@@ -384,7 +386,11 @@ world = raw_input('Pick your world: ')
 if world not in os.listdir('worlds'):
     print 'Creating the world...'
     os.mkdir('worlds/'+world)
-    generator = raw_input('Select a generator: ')
+    gen_list = filter(lambda n: not n.startswith('_'),
+                      [os.path.splitext(n)[0] for n in os.listdir('generators')]
+                      )
+    print 'Available generators: ',', '.join(gen_list)
+    generator = raw_input('Select a generator: ') +'.py'
     open('worlds/'+world+'/generator','w').write(generator)
     generator = imp.load_source('generator','generators/'+generator)
     generator.initialize(world)
