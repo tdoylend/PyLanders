@@ -138,6 +138,11 @@ class BlueCloth(Cloth):
     name = 'blue_cloth'
     invent_color = 0.05,0.05,0.6
 
+class Marble(Block):
+    name = 'marble'
+    invent_color = 0.9,0.8,0.8
+    def spec_init(self): self.color = 0.9,0.8,0.8
+
 class Cuboids(Block):
     name = 'cuboids'
     cubes = ((0,0,0,0.5,0.5,0.5))
@@ -160,6 +165,7 @@ names = {
     'yellow_cloth': YellowCloth,
     'green_cloth': GreenCloth,
     'blue_cloth': BlueCloth,
+    'marble': Marble,
     }
 
 blocks = [
@@ -172,4 +178,5 @@ blocks = [
     YellowCloth,
     GreenCloth,
     BlueCloth,
+    Marble
     ]
