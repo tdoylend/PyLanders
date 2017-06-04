@@ -113,6 +113,31 @@ class Trunk(Block):
     def spec_init(self):
         self.color = (0.5,0.3,0.0)
 
+class Cloth(Block):
+    name = '*_cloth'
+    invent_color = 0.2,0.2,0.2
+    def spec_init(self): self.color = self.invent_color
+
+class RedCloth(Cloth):
+    name = 'red_cloth'
+    invent_color = 0.6,0.05,0.05
+
+class GreenCloth(Cloth):
+    name = 'green_cloth'
+    invent_color = 0.05,0.6,0.05
+
+class OrangeCloth(Cloth):
+    name = 'orange_cloth'
+    invent_color = 0.6, 0.25, 0.05
+
+class YellowCloth(Cloth):
+    name = 'yellow_cloth'
+    invent_color = 0.6,0.6,0.05
+
+class BlueCloth(Cloth):
+    name = 'blue_cloth'
+    invent_color = 0.05,0.05,0.6
+
 class Cuboids(Block):
     name = 'cuboids'
     cubes = ((0,0,0,0.5,0.5,0.5))
@@ -129,11 +154,22 @@ names = {
     'grass': Grass,
     'stone': Stone,
     'trunk': Trunk,
+    '*_cloth': Cloth,
+    'red_cloth': RedCloth,
+    'orange_cloth': OrangeCloth,
+    'yellow_cloth': YellowCloth,
+    'green_cloth': GreenCloth,
+    'blue_cloth': BlueCloth,
     }
 
 blocks = [
     Block,
     Grass,
     Stone,
-    Trunk
+    Trunk,
+    RedCloth,
+    OrangeCloth,
+    YellowCloth,
+    GreenCloth,
+    BlueCloth,
     ]
